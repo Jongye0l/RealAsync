@@ -159,7 +159,8 @@ LRESULT CALLBACK callback(int nCode, WPARAM wParam, LPARAM lParam) {
                 }
             }
         }
-    } catch (const std::exception&) {
+    } catch (const std::exception& e) {
+        std::cerr << "Error in Callback\n" << e.what() << std::endl;
         exit(-1);
     }
     return CallNextHookEx(NULL, nCode, wParam, lParam);
@@ -180,7 +181,8 @@ void listener() {
             }
             UnhookWindowsHookEx(hook);
         }
-    } catch (const std::exception&) {
+    } catch (const std::exception& e) {
+        std::cerr << "Error in Listener\n" << e.what() << std::endl;
         exit(-1);
     }
 }
@@ -206,6 +208,7 @@ void writer() {
             offset = (offset + 1) % 256;
         }
     } catch (const std::exception& e) {
+        std::cerr << "Error in Writer\n" << e.what() << std::endl;
         exit(-1);
     }
 }
@@ -231,7 +234,8 @@ int main() {
                     throw std::runtime_error("Invalid command");
             }
         }
-    } catch (const std::exception&) {
+    } catch (const std::exception& e) {
+        std::cerr << "Error in Reader\n" << e.what() << std::endl;
         return -1;
     }
 }

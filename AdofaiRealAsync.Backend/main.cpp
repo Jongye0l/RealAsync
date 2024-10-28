@@ -227,8 +227,6 @@ int main() {
                 case 1:
                     active = false;
                     break;
-                case 2:
-                    exit(0);
                 default:
                     throw std::runtime_error("Invalid command");
             }

@@ -1,13 +1,10 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using HarmonyLib;
 using JALib.Core.Patch;
-using JALib.Tools;
 using JALib.Tools.ByteTool;
 using SkyHook;
 
@@ -29,8 +26,6 @@ public class RealAsyncManager {
         if(active) SkyHookManager.StopHook();
         tryCount = 0;
         buffer = new byte[16];
-        foreach(Process process in Process.GetProcessesByName("AdofaiRealAsync.Backend.exe")) process.Kill();
-        Application.ApplicationExit += OnClose;
         SetupProcess(active);
     }
 
@@ -112,7 +107,6 @@ public class RealAsyncManager {
     }
 
     public static void Dispose() {
-        Application.ApplicationExit -= OnClose;
         if(isActive) SkyHookManager.StartHook();
         if(input != null) {
             input.WriteByte(2);
@@ -131,11 +125,6 @@ public class RealAsyncManager {
         error = null;
         Process = null;
         isActive = false;
-    }
-
-    private static void OnClose(object sender, EventArgs e) {
-        input?.WriteByte(2);
-        Process?.Kill();
     }
 
     [JAPatch(typeof(SkyHookManager), "_StartHook", PatchType.Prefix, false)]

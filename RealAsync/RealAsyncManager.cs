@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using System.Windows.Forms;
+using HarmonyLib;
 using JALib.Core.Patch;
 using JALib.Tools.ByteTool;
 using SkyHook;
@@ -18,14 +18,13 @@ public class RealAsyncManager {
     public static StreamReader error;
     public static byte[] buffer;
     public static int tryCount;
-    public static int offset;
     public static int cur;
 
     public static void Initialize() {
         bool active = SkyHookManager.Instance.isHookActive;
         if(active) SkyHookManager.StopHook();
         tryCount = 0;
-        buffer = new byte[16];
+        buffer = new byte[20];
         SetupProcess(active);
     }
 
@@ -45,7 +44,7 @@ public class RealAsyncManager {
             output = Process.StandardOutput.BaseStream;
             error = Process.StandardError;
             cur = 0;
-            output.ReadAsync(buffer, 0, 16).ContinueWith(Read);
+            output.ReadAsync(buffer, 0, 20).ContinueWith(Read);
             error.ReadLineAsync().ContinueWith(ReadError);
             if(active) StartHook();
         } catch (Exception) {
@@ -77,32 +76,37 @@ public class RealAsyncManager {
                 return;
             }
             int remove = 0;
-            for(int i = 0; i < cur; i++) {
-                if(buffer[i] == 10) remove += 1;
+            for(int i = 1; i < cur; i++) {
+                if(buffer[i] == 10 && buffer[i - 1] == 13) remove += 1;
                 buffer[i - remove] = buffer[i];
             }
             cur -= remove;
-            if((cur += t.Result) >= 12) {
-                if(isActive && buffer[9] < 2 && offset == buffer[0]) {
-                    long time = buffer[1..9].Reverse().ToLong();
-                    RealAsyncEvent realAsyncEvent = new(time / 1000000000 + 32400, (uint) (time % 1000000000), (EventType) buffer[9], (KeyLabel) buffer[10], buffer[11]);
-                    SkyHookEvent skyHookEvent;
-                    IntPtr ptr = Marshal.AllocHGlobal(Marshal.SizeOf<SkyHookEvent>());
-                    try {
-                        Marshal.StructureToPtr(realAsyncEvent, ptr, false);
-                        skyHookEvent = Marshal.PtrToStructure<SkyHookEvent>(ptr);
-                    } finally {
-                        Marshal.FreeHGlobal(ptr);
+            if((cur += t.Result) >= 11) {
+                if(isActive) {
+                    if(buffer[8] < 2) {
+                        long time = buffer[..8].Reverse().ToLong();
+                        RealAsyncEvent realAsyncEvent = new(time / 1000000000 + 32400, (uint) (time % 1000000000), (EventType) buffer[8], (KeyLabel) buffer[9], buffer[10]);
+                        SkyHookEvent skyHookEvent;
+                        IntPtr ptr = Marshal.AllocHGlobal(Marshal.SizeOf<SkyHookEvent>());
+                        try {
+                            Marshal.StructureToPtr(realAsyncEvent, ptr, false);
+                            skyHookEvent = Marshal.PtrToStructure<SkyHookEvent>(ptr);
+                        } finally {
+                            Marshal.FreeHGlobal(ptr);
+                        }
+                        SkyHookManager.KeyUpdated.Invoke(skyHookEvent);
+                    } else {
+                        Main.Instance.Error("RealAsync send invalid message.");
+                        Main.Instance.Error("cur: " + cur + ", buffer: " + buffer.Join());
                     }
-                    SkyHookManager.KeyUpdated.Invoke(skyHookEvent);
-                    offset = (offset + 1) % 256;
                 }
                 cur = 0;
             }
-            output.ReadAsync(buffer, cur, 16 - cur).ContinueWith(Read);
+            output.ReadAsync(buffer, cur, 20 - cur).ContinueWith(Read);
         } catch (Exception e) {
             Main.Instance.Error("Failed to read RealAsync event.");
             Main.Instance.LogException(e);
+            output.ReadAsync(buffer, 0, 20).ContinueWith(Read);
         }
     }
 
@@ -130,7 +134,6 @@ public class RealAsyncManager {
     [JAPatch(typeof(SkyHookManager), "_StartHook", PatchType.Prefix, false)]
     private static bool StartHook() {
         if(isActive) return false;
-        offset = 0;
         isActive = true;
         input.WriteByte(0);
         Main.Instance.Log("RealAsync hook started.");

@@ -138,7 +138,6 @@ int cur = 0;
 int cur2 = 0;
 bool keys[256];
 bool active = false;
-int offset = 0;
 
 std::mutex m;
 std::condition_variable cv;
@@ -197,7 +196,6 @@ void writer() {
             event e = ev[cur2];
             long long time = std::chrono::duration_cast<std::chrono::nanoseconds>(e.time.time_since_epoch()).count();
             unsigned char key = keyMapping(e.vkCode);
-            std::cout.write((char*) &offset, 1);
             std::cout.write((char*) &time, 8);
             std::cout.write((char*) &e.release, 1);
             std::cout.write((char*) &key, 1);
@@ -205,7 +203,6 @@ void writer() {
             std::cout.flush();
             if(std::cout.bad()) throw std::runtime_error("Error writing to stdout");
             cur2 = (cur2 + 1) % 32;
-            offset = (offset + 1) % 256;
         }
     } catch (const std::exception& e) {
         std::cerr << "Error in Writer\n" << e.what() << std::endl;
@@ -223,7 +220,6 @@ int main() {
             if(!std::cin.good()) return -1;
             switch (b) {
                 case 0:
-                    offset = 0;
                     active = true;
                     cv2.notify_one();
                     break;

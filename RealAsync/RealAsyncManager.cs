@@ -113,6 +113,7 @@ public class RealAsyncManager {
 
     public static void Dispose() {
         Application.ApplicationExit -= OnClose;
+        if(isActive) SkyHookManager.StartHook();
         if(input != null) {
             input.WriteByte(2);
             input.Dispose();

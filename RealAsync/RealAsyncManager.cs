@@ -131,22 +131,20 @@ public class RealAsyncManager {
         isActive = false;
     }
 
-    [JAPatch(typeof(SkyHookManager), "_StartHook", PatchType.Prefix, false)]
-    private static bool StartHook() {
-        if(isActive) return false;
+    [JAPatch(typeof(SkyHookManager), "_StartHook", PatchType.Replace, false)]
+    private static void StartHook() {
+        if(isActive) return;
         isActive = true;
         input.WriteByte(0);
         Main.Instance.Log("RealAsync hook started.");
-        return false;
     }
 
-    [JAPatch(typeof(SkyHookManager), "_StopHook", PatchType.Prefix, false)]
-    private static bool StopHook() {
-        if(!isActive) return false;
+    [JAPatch(typeof(SkyHookManager), "_StopHook", PatchType.Replace, false)]
+    private static void StopHook() {
+        if(!isActive) return;
         isActive = false;
         input.WriteByte(1);
         Main.Instance.Log("RealAsync hook stopped.");
-        return false;
     }
 
     [JAPatch(typeof(SkyHookManager), "get_isHookActive", PatchType.Replace, false)]

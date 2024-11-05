@@ -137,11 +137,9 @@ event ev[32];
 int cur = 0;
 int cur2 = 0;
 bool keys[256];
-bool active = false;
 
 std::mutex m;
 std::condition_variable cv;
-std::condition_variable cv2;
 
 LRESULT CALLBACK callback(int nCode, WPARAM wParam, LPARAM lParam) {
     try {
@@ -167,19 +165,13 @@ LRESULT CALLBACK callback(int nCode, WPARAM wParam, LPARAM lParam) {
 
 void listener() {
     try {
-        while(true) {
-            if(!active) {
-                std::unique_lock lock(m);
-                cv2.wait(lock);
-            }
-            HHOOK hook = SetWindowsHookEx(WH_KEYBOARD_LL, callback, NULL, 0);
-            MSG msg;
-            while(GetMessage(&msg, NULL, 0, 0) && active) {
-                TranslateMessage(&msg);
-                DispatchMessage(&msg);
-            }
-            UnhookWindowsHookEx(hook);
+        HHOOK hook = SetWindowsHookEx(WH_KEYBOARD_LL, callback, NULL, 0);
+        MSG msg;
+        while(GetMessage(&msg, NULL, 0, 0)) {
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
         }
+        UnhookWindowsHookEx(hook);
     } catch (const std::exception& e) {
         std::cerr << "Error in Listener\n" << e.what() << std::endl;
         exit(-1);
@@ -215,20 +207,9 @@ int main() {
         std::thread t1 = std::thread(listener);
         std::thread t2 = std::thread(writer);
         while(true) {
-            byte b;
+            char b;
             std::cin >> b;
             if(!std::cin.good()) return -1;
-            switch (b) {
-                case 0:
-                    active = true;
-                    cv2.notify_one();
-                    break;
-                case 1:
-                    active = false;
-                    break;
-                default:
-                    throw std::runtime_error("Invalid command");
-            }
         }
     } catch (const std::exception& e) {
         std::cerr << "Error in Reader\n" << e.what() << std::endl;

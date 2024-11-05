@@ -44,6 +44,7 @@ public class RealAsyncManager {
             cur = 0;
             output.ReadAsync(buffer, 0, 20).ContinueWith(Read);
             error.ReadLineAsync().ContinueWith(ReadError);
+            Main.Instance.Log("RealAsync hook started.");
         } catch (Exception) {
             Process.Kill();
             Process.Dispose();
@@ -52,9 +53,15 @@ public class RealAsyncManager {
     }
 
     private static void ReadError(Task<string> t) {
-        Main.Instance.Error(t.Result);
-        if(!get_isHookActive()) return;
-        error.ReadLineAsync().ContinueWith(ReadError);
+        try {
+            Main.Instance.Error(t.Result);
+            if(!get_isHookActive()) return;
+            error.ReadLineAsync().ContinueWith(ReadError);
+        } catch (Exception e) {
+            if(Process == null) return;
+            Main.Instance.Error("Failed to read error RealAsync event.");
+            Main.Instance.LogException(e);
+        }
     }
 
     private static void Read(Task<int> t) {
@@ -101,6 +108,7 @@ public class RealAsyncManager {
             }
             output.ReadAsync(buffer, cur, 20 - cur).ContinueWith(Read);
         } catch (Exception e) {
+            if(Process == null) return;
             Main.Instance.Error("Failed to read RealAsync event.");
             Main.Instance.LogException(e);
             output.ReadAsync(buffer, 0, 20).ContinueWith(Read);
@@ -122,16 +130,16 @@ public class RealAsyncManager {
         } catch (Exception) {
             // ignored
         }
+        Process = null;
         output = null;
         error = null;
-        Process = null;
+        Main.Instance.Log("RealAsync hook stopped.");
     }
 
     [JAPatch(typeof(SkyHookManager), "_StartHook", PatchType.Replace, false)]
     private static void StartHook() {
         if(get_isHookActive()) return;
         SetupProcess();
-        Main.Instance.Log("RealAsync hook started.");
     }
 
     [JAPatch(typeof(SkyHookManager), "_StopHook", PatchType.Replace, false)]
@@ -139,7 +147,6 @@ public class RealAsyncManager {
         if(!get_isHookActive()) return;
         tryCount = 0;
         Close();
-        Main.Instance.Log("RealAsync hook stopped.");
     }
 
     [JAPatch(typeof(SkyHookManager), "get_isHookActive", PatchType.Replace, false)]

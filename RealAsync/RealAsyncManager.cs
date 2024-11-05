@@ -44,6 +44,7 @@ public class RealAsyncManager {
             cur = 0;
             output.ReadAsync(buffer, 0, 20).ContinueWith(Read);
             error.ReadLineAsync().ContinueWith(ReadError);
+            Main.WaterMark(true);
             Main.Instance.Log("RealAsync hook started.");
         } catch (Exception) {
             Process.Kill();
@@ -134,6 +135,7 @@ public class RealAsyncManager {
         Process = null;
         output = null;
         error = null;
+        Main.WaterMark(false);
         Main.Instance.Log("RealAsync hook stopped.");
     }
 

@@ -57,8 +57,9 @@ public class RealAsyncManager {
             Main.Instance.Error(t.Result);
             if(!get_isHookActive()) return;
             error.ReadLineAsync().ContinueWith(ReadError);
+        } catch (ObjectDisposedException) {
         } catch (Exception e) {
-            if(Process == null) return;
+            if(Process == null || e.InnerException is NullReferenceException) return;
             Main.Instance.Error("Failed to read error RealAsync event.");
             Main.Instance.LogException(e);
         }
@@ -107,8 +108,8 @@ public class RealAsyncManager {
                 cur = 0;
             }
             output.ReadAsync(buffer, cur, 20 - cur).ContinueWith(Read);
+        } catch (ObjectDisposedException) {
         } catch (Exception e) {
-            if(Process == null) return;
             Main.Instance.Error("Failed to read RealAsync event.");
             Main.Instance.LogException(e);
             output.ReadAsync(buffer, 0, 20).ContinueWith(Read);

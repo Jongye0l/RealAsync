@@ -87,7 +87,7 @@ public class RealAsyncManager {
                 buffer[i - remove] = buffer[i];
             }
             cur -= remove;
-            if((cur += t.Result) >= 11) {
+            if(cur >= 11) {
                 if(get_isHookActive()) {
                     if(buffer[8] < 2) {
                         long time = buffer[..8].Reverse().ToLong();

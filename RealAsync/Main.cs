@@ -10,12 +10,10 @@ namespace RealAsync;
 
 public class Main : JAMod {
     public static Main Instance;
-    public static JAPatcher Patcher;
     public static GameObject gameObject;
 
     public Main(UnityModManager.ModEntry modEntry) : base(modEntry, false) {
         Instance = this;
-        Patcher = new JAPatcher(this);
         Patcher.AddPatch(typeof(RealAsyncManager));
     }
 
@@ -26,7 +24,6 @@ public class Main : JAMod {
         }
         ModEntry.Info.DisplayName = Name;
         RealAsyncManager.Initialize();
-        Patcher.Patch();
     }
 
     public void Error() {
@@ -35,7 +32,6 @@ public class Main : JAMod {
     }
 
     protected override void OnDisable() {
-        Patcher.Unpatch();
         RealAsyncManager.Dispose();
     }
 

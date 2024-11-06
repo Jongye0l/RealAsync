@@ -17,11 +17,13 @@ public class RealAsyncManager {
     public static byte[] buffer;
     public static int tryCount;
     public static int cur;
+    public static int timeDiff;
 
     public static void Initialize() {
         bool active = SkyHookManager.Instance.isHookActive;
         tryCount = 0;
         buffer = new byte[20];
+        timeDiff = (int) (DateTime.Now.Ticks / 10000000L) - (int) (DateTime.UtcNow.Ticks / 10000000L);
         if(!active) return;
         SkyHookManager.StopHook();
         SetupProcess();
@@ -91,7 +93,7 @@ public class RealAsyncManager {
                 if(get_isHookActive()) {
                     if(buffer[8] < 2) {
                         long time = buffer[..8].Reverse().ToLong();
-                        RealAsyncEvent realAsyncEvent = new(time / 1000000000 + 32400, (uint) (time % 1000000000), (EventType) buffer[8], (KeyLabel) buffer[9], buffer[10]);
+                        RealAsyncEvent realAsyncEvent = new(time / 1000000000 + timeDiff, (uint) (time % 1000000000), (EventType) buffer[8], (KeyLabel) buffer[9], buffer[10]);
                         SkyHookEvent skyHookEvent;
                         IntPtr ptr = Marshal.AllocHGlobal(Marshal.SizeOf<SkyHookEvent>());
                         try {

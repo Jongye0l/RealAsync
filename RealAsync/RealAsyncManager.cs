@@ -7,6 +7,8 @@ using HarmonyLib;
 using JALib.Core.Patch;
 using JALib.Tools.ByteTool;
 using SkyHook;
+using UnityEngine;
+using EventType = SkyHook.EventType;
 
 namespace RealAsync;
 
@@ -39,6 +41,7 @@ public class RealAsyncManager {
             ummStartInfo.RedirectStandardOutput = true;
             ummStartInfo.RedirectStandardError = true;
             ummStartInfo.CreateNoWindow = true;
+            Application.wantsToQuit += OnQuit;
             Process.Start();
             Process.PriorityClass = ProcessPriorityClass.RealTime;
             output = Process.StandardOutput.BaseStream;
@@ -53,6 +56,15 @@ public class RealAsyncManager {
             Process.Dispose();
             throw;
         }
+    }
+
+    private static bool OnQuit() {
+        try {
+            Process?.Dispose();
+        } catch (Exception) {
+            // ignored
+        }
+        return true;
     }
 
     private static void ReadError(Task<string> t) {
@@ -134,6 +146,7 @@ public class RealAsyncManager {
         } catch (Exception) {
             // ignored
         }
+        Application.wantsToQuit -= OnQuit;
         Process = null;
         output = null;
         error = null;
@@ -154,7 +167,7 @@ public class RealAsyncManager {
         Close();
     }
 
-    [JAPatch(typeof(SkyHookManager), "get_isHookActive", PatchType.Replace, false)]
+    [JAPatch(typeof(SkyHookManager), "isHookActive.get", PatchType.Replace, false)]
     private static bool get_isHookActive() => Process is { HasExited: false };
 
     private struct RealAsyncEvent(long timeSec, uint timeSubsecNano, EventType type, KeyLabel label, ushort key) {

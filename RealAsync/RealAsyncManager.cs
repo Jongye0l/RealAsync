@@ -54,7 +54,6 @@ public class RealAsyncManager {
             Main.WaterMark(true);
             Main.Instance.Log("RealAsync hook started.");
         } catch (Exception) {
-            Process.Kill();
             Process.Dispose();
             throw;
         }
@@ -144,7 +143,6 @@ public class RealAsyncManager {
         output?.Dispose();
         error?.Dispose();
         try {
-            Process.Kill();
             Process.Dispose();
         } catch (Exception) {
             // ignored

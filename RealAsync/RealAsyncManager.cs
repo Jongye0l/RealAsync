@@ -20,12 +20,14 @@ public class RealAsyncManager {
     public static int tryCount;
     public static int cur;
     public static int timeDiff;
+    public static Action<SkyHookEvent> Callback;
 
     public static void Initialize() {
         bool active = SkyHookManager.Instance.isHookActive;
         tryCount = 0;
         buffer = new byte[20];
         timeDiff = (int) (DateTime.Now.Ticks / 10000000L) - (int) (DateTime.UtcNow.Ticks / 10000000L);
+        Callback = (Action<SkyHookEvent>) Delegate.CreateDelegate(typeof(Action<SkyHookEvent>), SkyHookManager.Instance, typeof(SkyHookManager).Method("HookCallback"));
         if(!active) return;
         SkyHookManager.StopHook();
         SetupProcess();
@@ -114,7 +116,7 @@ public class RealAsyncManager {
                         } finally {
                             Marshal.FreeHGlobal(ptr);
                         }
-                        SkyHookManager.KeyUpdated.Invoke(skyHookEvent);
+                        Callback(skyHookEvent);
                     } else {
                         Main.Instance.Error("RealAsync send invalid message.");
                         Main.Instance.Error("cur: " + cur + ", buffer: " + buffer.Join());
@@ -135,6 +137,7 @@ public class RealAsyncManager {
         if(get_isHookActive()) SkyHookManager.StartHook();
         Close();
         buffer = null;
+        Callback = null;
     }
 
     public static void Close() {

@@ -71,7 +71,7 @@ public class RealAsyncManager {
     private static void ReadError(Task<string> t) {
         try {
             Main.Instance.Error(t.Result);
-            if(!get_isHookActive()) return;
+            if(!IsHookActive()) return;
             error.ReadLineAsync().ContinueWith(ReadError);
         } catch (ObjectDisposedException) {
         } catch (Exception e) {
@@ -84,14 +84,18 @@ public class RealAsyncManager {
     private static void Read(Task<int> t) {
         try {
             if(Process == null) return;
-            if(Process.HasExited) {
+            if(!IsHookActive()) {
                 if(tryCount++ > 5) {
                     Main.Instance.Error("RealAsync backend process has exited.");
                     Main.Instance.Error();
                     return;
                 }
                 Main.Instance.Error("RealAsync backend process has exited. Restarting...");
-                Process.Dispose();
+                try {
+                    Process.Dispose();
+                } catch (Exception) {
+                    // ignored
+                }
                 SetupProcess();
                 return;
             }
@@ -103,7 +107,7 @@ public class RealAsyncManager {
             }
             cur -= remove;
             if(cur >= 11) {
-                if(get_isHookActive()) {
+                if(IsHookActive()) {
                     if(buffer[8] < 2) {
                         long time = buffer[..8].Reverse().ToLong();
                         RealAsyncEvent realAsyncEvent = new(time / 1000000000 + timeDiff, (uint) (time % 1000000000), (EventType) buffer[8], (KeyLabel) buffer[9], buffer[10]);
@@ -133,7 +137,7 @@ public class RealAsyncManager {
     }
 
     public static void Dispose() {
-        if(get_isHookActive()) SkyHookManager.StartHook();
+        if(IsHookActive()) SkyHookManager.StartHook();
         Close();
         buffer = null;
         Callback = null;
@@ -157,19 +161,25 @@ public class RealAsyncManager {
 
     [JAPatch(typeof(SkyHookManager), "_StartHook", PatchType.Replace, false)]
     private static void StartHook() {
-        if(get_isHookActive()) return;
+        if(IsHookActive()) return;
         SetupProcess();
     }
 
     [JAPatch(typeof(SkyHookManager), "_StopHook", PatchType.Replace, false)]
     private static void StopHook() {
-        if(!get_isHookActive()) return;
+        if(!IsHookActive()) return;
         tryCount = 0;
         Close();
     }
 
     [JAPatch(typeof(SkyHookManager), "isHookActive.get", PatchType.Replace, false)]
-    private static bool get_isHookActive() => Process is { HasExited: false };
+    private static bool IsHookActive() {
+        try {
+            return Process is { HasExited: false };
+        } catch (Exception) {
+            return false;
+        }
+    }
 
     private struct RealAsyncEvent(long timeSec, uint timeSubsecNano, EventType type, KeyLabel label, ushort key) {
         public long TimeSec = timeSec;
